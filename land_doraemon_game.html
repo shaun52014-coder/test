@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地政A夢 × 汐東線！百寶袋闖關大作戰</title>
+    <style>
+        :root {
+            --primary-blue: #2A9D8F;
+            --sky-blue: #E0F2FE;
+            --accent-orange: #F4A261;
+            --dark-blue: #1D3557;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+            background-color: #F8FAFC;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #334155;
+        }
+
+        .game-container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            padding: 25px;
+            box-sizing: border-box;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 3px solid var(--sky-blue);
+            padding-bottom: 15px;
+        }
+
+        header h1 {
+            color: var(--dark-blue);
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+
+        header p {
+            margin: 0;
+            color: #64748B;
+            font-size: 16px;
+        }
+
+        /* 捷運路線圖大富翁棋盤 */
+        .map-route {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #F1F5F9;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .map-line {
+            position: absolute;
+            top: 50%;
+            left: 50px;
+            right: 50px;
+            height: 6px;
+            background: #3B82F6; /* 汐東線代表色藍色 */
+            z-index: 1;
+            transform: translateY(-50%);
+        }
+
+        .station-node {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .station-dot {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: white;
+            border: 4px solid #3B82F6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .station-node.active .station-dot {
+            background: #EF4444;
+            border-color: #DC2626;
+            color: white;
+            transform: scale(1.2);
+            animation: pulse 1.5s infinite;
+        }
+
+        .station-node.passed .station-dot {
+            background: #10B981;
+            border-color: #059669;
+            color: white;
+        }
+
+        .station-name {
+            margin-top: 10px;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        /* 遊戲核心互動區 */
+        .game-core {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .game-core {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .control-panel, .challenge-panel {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 250px;
+        }
+
+        /* 骰子樣式 */
+        .dice-area {
+            text-align: center;
+        }
+
+        .dice {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border: 3px solid var(--dark-blue);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            margin: 15px auto;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .dice.rolling {
+            animation: spin 0.5s linear infinite;
+        }
+
+        .btn {
+            background: var(--dark-blue);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #2D3748;
+        }
+
+        .btn:disabled {
+            background: #CBD5E1;
+            cursor: not-allowed;
+        }
+
+        /* 關卡題目與百寶袋法寶 */
+        .challenge-box {
+            width: 100%;
+            text-align: center;
+        }
+
+        .scenario-text {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #1E293B;
+            font-weight: 500;
+        }
+
+        .gadget-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .gadget-btn {
+            background: white;
+            border: 2px solid #E2E8F0;
+            padding: 12px 10px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #475569;
+        }
+
+        .gadget-btn:hover:not(:disabled) {
+            border-color: #3B82F6;
+            background: var(--sky-blue);
+            color: #1E3A8A;
+        }
+
+        /* 提示與訊息 */
+        .msg-box {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 24px;
+            text-align: center;
+        }
+
+        .success { color: #10B981; }
+        .error { color: #EF4444; }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <header>
+        <h1>地政A夢 × 汐東線！百寶袋闖關大作戰 🧑‍🤝‍🧑</h1>
+        <p>陪伴小雄搭乘汐東線，用百寶袋裡的地政便民法寶解決所有難題吧！</p>
+    </header>
+
+    <!-- 汐東線大富翁地圖 -->
+    <div class="map-route">
+        <div class="map-line"></div>
+        <div class="station-node active" id="st-0">
+            <div class="station-dot">起</div>
+            <div class="station-name">準備出發</div>
+        </div>
+        <div class="station-node" id="st-1">
+            <div class="station-dot">SB10</div>
+            <div class="station-name">東湖站</div>
+        </div>
+        <div class="station-node" id="st-2">
+            <div class="station-dot">SB11</div>
+            <div class="station-name">下社后站</div>
+        </div>
+        <div class="station-node" id="st-3">
+            <div class="station-dot">SB12</div>
+            <div class="station-name">社后站</div>
+        </div>
+        <div class="station-node" id="st-4">
+            <div class="station-dot">SB13</div>
+            <div class="station-name">樟樹灣站</div>
+        </div>
+        <div class="station-node" id="st-5">
+            <div class="station-dot">SB14</div>
+            <div class="station-name">汐止科學園區站</div>
+        </div>
+        <div class="station-node" id="st-6">
+            <div class="station-dot">SB15</div>
+            <div class="station-name">汐止區公所站</div>
+        </div>
+    </div>
+
+    <!-- 核心遊戲操控與題目區 -->
+    <div class="game-core">
+        <!-- 左側：控制台（擲骰子） -->
+        <div class="control-panel">
+            <div class="dice-area">
+                <h3>【地政A夢的秘密道具】</h3>
+                <p>點擊下方按鈕或骰子來決定前進步數</p>
+                <div class="dice" id="dice-view">?</div>
+                <button class="btn" id="roll-btn" onclick="rollDice()">擲機率骰子</button>
+            </div>
+            <div class="msg-box" id="game-msg"></div>
+        </div>
+
+        <!-- 右側：百寶袋情境挑戰 -->
+        <div class="challenge-panel">
+            <div class="challenge-box" id="challenge-box" style="display: none;">
+                <h3 style="color: var(--dark-blue); margin-top: 0;" id="current-station-title">當前站點</h3>
+                <div class="scenario-text" id="question-text">情境載入中...</div>
+                <p style="font-weight: bold; font-size: 14px; margin-bottom: 10px; color: var(--accent-orange);">🧰 請打開百寶袋選擇正確法寶：</p>
+                <div class="gadget-grid">
+                    <button class="gadget-btn" onclick="checkAnswer(1)">地籍異動即時通</button>
+                    <button class="gadget-btn" onclick="checkAnswer(2)">有心．租屋平台</button>
+                    <button class="gadget-btn" onclick="checkAnswer(3)">AI人工智慧櫃檯</button>
+                    <button class="gadget-btn" onclick="checkAnswer(4)">新北地政通</button>
+                    <button class="gadget-btn" onclick="checkAnswer(5)">指定送達處所</button>
+                    <button class="gadget-btn" onclick="checkAnswer(6)">住址隱匿</button>
+                </div>
+            </div>
+            <div id="welcome-box" style="text-align: center; color: #64748B;">
+                <p style="font-size: 48px; margin: 0;">🎲</p>
+                <p>請先擲骰子，搭乘汐東線前往下一站幫忙小雄吧！</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 遊戲狀態變數
+    let currentPosition = 0; 
+    let isRolling = false;
+    let waitingForAnswer = false;
+
+    // 關卡與題目設定（已潤飾）
+    const stages = {
+        1: {
+            title: "SB10 東湖站",
+            question: "【產權防詐安全】小雄聽說最近詐騙手法猖獗，很擔心自己名下的房子在不知不覺中被壞人偷偷過戶或設定抵押，地政A夢該拿出什麼法寶來隨時監控產權動態？",
+            answer: 1
+        },
+        2: {
+            title: "SB11 下社后站",
+            question: "【安心租屋防惡房東】小雄離家背景準備租屋，在網路上看到眼花撩亂的租屋廣告，很擔心遇到惡房東或假房東騙取押金。地政A夢該推薦哪一個安全無虞的租屋法寶？",
+            answer: 2
+        },
+        3: {
+            title: "SB12 社后站",
+            question: "【臨櫃免排隊急救包】小雄趕著要申請地籍謄本去辦貸款，結果一進地政事務所發現前面居然排隊等待了20幾個人！地政A夢有什麼智慧法寶能幫他免排隊、快速引導申辦？",
+            answer: 3
+        },
+        4: {
+            title: "SB13 樟樹灣站",
+            question: "【24小時地政特助】半夜三更，小雄突然想起明天要處理土地問題，急需查詢地政法令與試算登記規費，但政府機關早就下班了。哪一項全天候在線的法寶能當他的地政智囊？",
+            answer: 4
+        },
+        5: {
+            title: "SB14 汐止科學園區站",
+            question: "【重要公文不漏接】小雄因為工作關係經常住在公司，很擔心老家的重要地政公文或通知書因為沒人簽收而漏掉，導致權益受損。該用什麼法寶來指定方便收件的地址？",
+            answer: 5
+        },
+        6: {
+            title: "SB15 汐止區公所站",
+            question: "【個人隱私大防線】小雄的土地謄本可能需要提供給其他人看，但他非常注重隱私，不希望自己的「戶籍地址」毫無保留地暴露在任何人都能申請的謄本上。該啟動哪項法寶？",
+            answer: 6
+        }
+    };
+
+    // 擲骰子邏輯
+    function rollDice() {
+        if (isRolling || waitingForAnswer) return;
+
+        isRolling = true;
+        document.getElementById('roll-btn').disabled = true;
+        const diceView = document.getElementById('dice-view');
+        const msgBox = document.getElementById('game-msg');
+        
+        diceView.classList.add('rolling');
+        msgBox.innerHTML = "地政A夢正在百寶袋翻找骰子...";
+
+        setTimeout(() => {
+            // 隨機骰 1 ~ 3 步（避免大富翁一下衝過頭，增加遊玩互動感）
+            const steps = Math.floor(Math.random() * 3) + 1;
+            diceView.classList.remove('rolling');
+            diceView.innerText = steps;
+            
+            // 計算新位置（最高到第 6 站）
+            let targetPosition = currentPosition + steps;
+            if (targetPosition > 6) targetPosition = 6; 
+
+            currentPosition = targetPosition;
+            updateMapUI();
+
+            isRolling = false;
+            
+            // 進入答題狀態
+            waitingForAnswer = true;
+            msgBox.innerHTML = `前進了 <span style="color:var(--accent-orange); font-size:18px;">${steps}</span> 步！請幫忙解決小雄的難題。`;
+            showChallenge();
+        }, 1000);
+    }
+
+    // 更新地圖節點亮燈狀態
+    function updateMapUI() {
+        for (let i = 0; i <= 6; i++) {
+            const node = document.getElementById(`st-${i}`);
+            node.classList.remove('active', 'passed');
+            
+            if (i === currentPosition) {
+                node.classList.add('active');
+            } else if (i < currentPosition) {
+                node.classList.add('passed');
+            }
+        }
+    }
+
+    // 顯示關卡挑戰題目
+    function showChallenge() {
+        document.getElementById('welcome-box').style.display = 'none';
+        const box = document.getElementById('challenge-box');
+        box.style.display = 'block';
+
+        const stageData = stages[currentPosition];
+        document.getElementById('current-station-title').innerText = `📍 當前位置：${stageData.title}`;
+        document.getElementById('question-text').innerText = stageData.question;
+        
+        // 恢復法寶按鈕點擊
+        toggleGadgetButtons(false);
+    }
+
+    // 防重複點擊
+    function toggleGadgetButtons(disabled) {
+        const btns = document.querySelectorAll('.gadget-btn');
+        btns.forEach(btn => btn.disabled = disabled);
+    }
+
+    // 檢查答案
+    function checkAnswer(playerChoice) {
+        if (!waitingForAnswer) return;
+
+        const stageData = stages[currentPosition];
+        const msgBox = document.getElementById('game-msg');
+
+        if (playerChoice === stageData.answer) {
+            msgBox.innerHTML = "<span class='success'>🎉 太棒了！答對了，成功幫小雄化解危機！</span>";
+            toggleGadgetButtons(true);
+            waitingForAnswer = false;
+            
+            // 檢查是否通關終點
+            if (currentPosition === 6) {
+                setTimeout(() => {
+                    alert("🏆 恭喜通關汐東線！您已成功運用地政百寶袋的所有法寶，成為地政智慧通！");
+                    msgBox.innerHTML = "<span class='success'>恭喜通關！重新整理網頁可再度挑戰。</span>";
+                }, 500);
+            } else {
+                document.getElementById('roll-btn').disabled = false;
+                msgBox.innerHTML += "<br>（可以繼續擲骰子前往下一站囉！）";
+            }
+        } else {
+            msgBox.innerHTML = "<span class='error'>❌ 糟了！這個法寶好像沒辦法解決問題，再想想看！</span>";
+        }
+    }
+</script>
+
+</body>
+</html>
